@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --bg2: #181c27;
+  --bg3: #1e2333;
+  --bg4: #252a3a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #e8eaf0;
+  --text2: #8b90a0;
+  --text3: #555a6e;
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,0.15);
+  --blue-bg: rgba(59,130,246,0.08);
+  --amber: #f59e0b;
+  --coral: #f43f5e;
+  --coral-dim: rgba(244,63,94,0.12);
+  --purple: #8b5cf6;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+body { min-height: 100vh; }
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.logo { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.logo span { color: var(--blue); }
+.tab-bar { display: flex; gap: 2px; background: var(--bg3); border-radius: var(--radius-sm); padding: 3px; }
+.tab { font-size: 13px; font-weight: 500; padding: 5px 14px; border-radius: 4px; cursor: pointer; color: var(--text2); border: none; background: none; transition: all 0.15s; font-family: inherit; }
+.tab.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.save-btn { font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: var(--radius-sm); background: var(--blue); color: #fff; border: none; cursor: pointer; font-family: inherit; }
+.save-btn:hover { opacity: 0.85; }
+.share-btn { font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: var(--radius-sm); background: transparent; color: var(--text2); border: 1px solid var(--border2); cursor: pointer; font-family: inherit; }
+.share-btn:hover { color: var(--text); background: var(--bg3); }
+.main { flex: 1; display: flex; overflow: hidden; }
+.sidebar { width: 260px; min-width: 260px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); }
+.sidebar-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+.emp-count { font-size: 22px; font-weight: 700; color: var(--text); }
+.emp-count span { font-size: 13px; font-weight: 400; color: var(--text2); margin-left: 4px; }
+.add-emp-btn { width: 100%; margin-top: 10px; padding: 8px; background: var(--blue-dim); border: 1px dashed rgba(59,130,246,0.4); border-radius: var(--radius-sm); color: var(--blue); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.add-emp-btn:hover { background: var(--blue-bg); }
+.emp-search { margin: 10px 16px 6px; }
+.emp-search input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 12px; color: var(--text); outline: none; font-family: inherit; }
+.emp-search input::placeholder { color: var(--text3); }
+.emp-search input:focus { border-color: var(--blue); }
+.emp-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+.emp-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.1s; margin-bottom: 2px; }
+.emp-item:hover { background: var(--bg3); }
+.emp-item.selected { background: var(--blue-dim); }
+.emp-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.emp-info { flex: 1; min-width: 0; }
+.emp-name-sm { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.emp-days-sm { font-size: 10px; color: var(--text2); margin-top: 1px; }
+.emp-del { opacity: 0; font-size: 16px; color: var(--text3); background: none; border: none; cursor: pointer; padding: 2px 4px; }
+.emp-item:hover .emp-del { opacity: 1; }
+.emp-del:hover { color: var(--coral); }
+.content { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+#view-dashboard { padding: 24px; display: none; flex-direction: column; gap: 20px; }
+#view-dashboard.active { display: flex; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.stat-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+.stat-val { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.dash-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.day-tabs { display: flex; gap: 4px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; }
+.day-tab { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 4px; cursor: pointer; color: var(--text2); border: none; background: none; transition: all 0.15s; font-family: inherit; }
+.day-tab.active { background: var(--blue); color: #fff; }
+.view-select { font-size: 12px; padding: 7px 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); outline: none; cursor: pointer; font-family: inherit; }
+.grid-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.grid-scroll { overflow-x: auto; max-height: calc(100vh - 290px); overflow-y: auto; }
+table.sched { border-collapse: collapse; width: 100%; min-width: 600px; font-size: 12px; }
+table.sched thead tr { position: sticky; top: 0; z-index: 3; }
+table.sched th { background: var(--bg3); color: var(--text2); font-weight: 600; padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: center; font-size: 11px; white-space: nowrap; }
+table.sched th.time-h { width: 80px; text-align: right; padding-right: 10px; }
+table.sched td { border: 1px solid rgba(255,255,255,0.04); padding: 2px; vertical-align: top; min-width: 54px; }
+table.sched td.time-cell { font-size: 11px; text-align: right; padding: 4px 8px; white-space: nowrap; vertical-align: middle; font-weight: 600; background: var(--bg3); border-right: 1px solid var(--border); }
+table.sched td.time-cell.t-am  { color: #60a5fa; }
+table.sched td.time-cell.t-pm  { color: #fbbf24; }
+table.sched td.time-cell.t-mid { color: #a78bfa; }
+table.sched td.count-cell { background: var(--bg3); text-align: center; vertical-align: middle; padding: 4px; border-left: 1px solid var(--border); }
+table.sched tr.block-sep td { border-top: 1px solid rgba(255,255,255,0.12) !important; }
+.chip { border-radius: 3px; padding: 2px 5px; font-size: 10px; font-weight: 600; display: block; text-align: center; line-height: 1.5; }
+.chip-work  { background: rgba(59,130,246,0.22);  color: #93c5fd; }
+.chip-lunch { background: rgba(245,158,11,0.22);  color: #fcd34d; }
+.chip-break { background: rgba(139,92,246,0.22);  color: #c4b5fd; }
+.chip-off   { background: rgba(255,255,255,0.04); color: var(--text3); }
+.cell-empty { background: repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.018) 5px,rgba(255,255,255,0.018) 10px); }
+.legend { display: flex; gap: 16px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+#view-employees { padding: 24px; display: none; flex-direction: column; gap: 16px; }
+#view-employees.active { display: flex; }
+.emp-form-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.emp-form-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.avatar-big { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.name-input { background: transparent; border: none; outline: none; color: var(--text); font-size: 17px; font-weight: 700; font-family: inherit; flex: 1; min-width: 0; }
+.remove-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-sm); background: var(--coral-dim); color: var(--coral); border: 1px solid rgba(244,63,94,0.3); cursor: pointer; font-family: inherit; white-space: nowrap; }
+.form-section { margin-bottom: 18px; }
+.form-section-title { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--text2); }
+.form-input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; color: var(--text); outline: none; font-family: inherit; width: 100%; }
+.form-input:focus { border-color: var(--blue); }
+.days-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-toggle { width: 46px; height: 36px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg3); color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-family: inherit; }
+.day-toggle.on { background: var(--blue-dim); border-color: rgba(59,130,246,0.5); color: var(--blue); }
+.no-selection { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: var(--text3); text-align: center; gap: 10px; }
+.empty-list { padding: 24px 16px; text-align: center; color: var(--text3); font-size: 12px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(2px); }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 24px; width: 360px; max-width: 95vw; }
+.modal-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.modal-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; color: var(--text); outline: none; font-family: inherit; margin-bottom: 12px; }
+.modal-input:focus { border-color: var(--blue); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-cancel { padding: 8px 16px; border-radius: var(--radius-sm); background: var(--bg3); color: var(--text2); border: 1px solid var(--border); font-size: 13px; cursor: pointer; font-family: inherit; }
+.modal-ok { padding: 8px 16px; border-radius: var(--radius-sm); background: var(--blue); color: #fff; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 18px; font-size: 13px; color: var(--text); z-index: 300; opacity: 0; transform: translateY(10px); transition: all 0.25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 10px; }
+@media (max-width: 700px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .stat-row { grid-template-columns: repeat(2,1fr); }
+  .form-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">Schedule<span>.</span></div>
+      <div class="tab-bar">
+        <button class="tab active" onclick="switchView('dashboard')">Dashboard</button>
+        <button class="tab" onclick="switchView('employees')">Employees</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="share-btn" onclick="copyShareLink()">Copy Link</button>
+      <button class="save-btn" onclick="saveData()">Save</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Staff List</div>
+        <div class="emp-count" id="emp-count">0<span> members</span></div>
+        <button class="add-emp-btn" onclick="openAddModal()">+ Add Employee</button>
+      </div>
+      <div class="emp-search">
+        <input type="text" placeholder="Search name..." oninput="filterEmployees(this.value)" id="search-input">
+      </div>
+      <div class="emp-list" id="emp-list"></div>
+    </aside>
+
+    <div class="content">
+      <div id="view-dashboard" class="active">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Staff</div>
+            <div class="stat-val" id="s-total" style="color:var(--text)">0</div>
+            <div class="stat-sub">registered employees</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Working Today</div>
+            <div class="stat-val" id="s-working" style="color:var(--blue)">0</div>
+            <div class="stat-sub">scheduled today</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Day Off</div>
+            <div class="stat-val" id="s-off" style="color:var(--coral)">0</div>
+            <div class="stat-sub">not working today</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Peak Staff</div>
+            <div class="stat-val" id="s-peak" style="color:var(--amber)">0</div>
+            <div class="stat-sub" id="s-peak-time">max concurrent</div>
+          </div>
+        </div>
+
+        <div class="dash-controls">
+          <div class="day-tabs">
+            <button class="day-tab" onclick="setDay('Mon',this)">Mon</button>
+            <button class="day-tab" onclick="setDay('Tue',this)">Tue</button>
+            <button class="day-tab" onclick="setDay('Wed',this)">Wed</button>
+            <button class="day-tab" onclick="setDay('Thu',this)">Thu</button>
+            <button class="day-tab" onclick="setDay('Fri',this)">Fri</button>
+            <button class="day-tab" onclick="setDay('Sat',this)">Sat</button>
+            <button class="day-tab" onclick="setDay('Sun',this)">Sun</button>
+          </div>
+          <select class="view-select" id="view-filter" onchange="renderDashboard()">
+            <option value="all">All Staff</option>
+            <option value="working">Working Only</option>
+            <option value="off">Day Off Only</option>
+          </select>
+        </div>
+
+        <div class="grid-card">
+          <div class="grid-scroll">
+            <table class="sched" id="sched-table"></table>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(59,130,246,0.5)"></div>Working</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,0.5)"></div>Lunch</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(139,92,246,0.5)"></div>Break</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.06)"></div>Day Off</div>
+            <div class="legend-item"><div class="legend-dot" style="background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,0.04) 3px,rgba(255,255,255,0.04) 6px)"></div>Unassigned</div>
+            <div class="legend-item" style="margin-left:auto;gap:8px">
+              <span style="color:#60a5fa;font-size:10px;font-weight:700">AM</span>
+              <span style="color:#fbbf24;font-size:10px;font-weight:700">PM</span>
+              <span style="color:#a78bfa;font-size:10px;font-weight:700">MID</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-employees">
+        <div id="emp-form-area">
+          <div class="no-selection">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <div>Select an employee from the list<br>or add a new one</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">Add Employee</div>
+    <input class="modal-input" id="new-emp-name" placeholder="Employee name" maxlength="30">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-ok" onclick="confirmAddEmployee()">Add</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const HOURS = Array.from({length:24},(_,i)=>i);
+const COLORS = [
+  '#3b82f6','#10b981','#f59e0b','#f43f5e','#8b5cf6','#06b6d4',
+  '#ec4899','#84cc16','#f97316','#a78bfa','#34d399','#fb923c',
+];
+
+let employees = [];
+let currentDay = 'Mon';
+let selectedEmpId = null;
+
+function getColor(id) {
+  const idx = employees.findIndex(e=>e.id===id);
+  return COLORS[idx % COLORS.length];
+}
+function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function defaultEmployee(name) {
+  return { id:genId(), name,
+    days:['Mon','Tue','Wed','Thu','Fri'],
+    start:'09:00', end:'18:00',
+    lunch:['12:00','13:00'],
+    brk1:['10:30','10:45'],
+    brk2:['15:00','15:15']
+  };
+}
+
+function saveData() {
+  localStorage.setItem('sched_v3', JSON.stringify(employees));
+  showToast('Saved successfully');
+}
+function loadData() {
+  const r = localStorage.getItem('sched_v3');
+  if(r) try { employees = JSON.parse(r); } catch(e){}
+}
+function copyShareLink() {
+  const data = btoa(encodeURIComponent(JSON.stringify(employees)));
+  const url  = location.origin + location.pathname + '?d=' + data;
+  navigator.clipboard.writeText(url)
+    .then(()=>showToast('Link copied! Share it with your team.'))
+    .catch(()=>prompt('Copy this link:', url));
+}
+function loadFromURL() {
+  const d = new URLSearchParams(location.search).get('d');
+  if(d) try { employees = JSON.parse(decodeURIComponent(atob(d))); } catch(e){}
+}
+
+function toFrac(t) { const [h,m]=t.split(':').map(Number); return h+m/60; }
+
+function formatHour(h) {
+  if(h===0)  return '12:00 AM';
+  if(h===12) return '12:00 PM';
+  if(h<12)   return `${h}:00 AM`;
+  return `${h-12}:00 PM`;
+}
+function hourClass(h) {
+  if(h>=0&&h<6)   return 't-mid';
+  if(h>=6&&h<12)  return 't-am';
+  if(h>=12&&h<18) return 't-pm';
+  return 't-mid';
+}
+
+function getStatus(emp, h) {
+  if(!emp.days.includes(currentDay)) return 'off';
+  const s=toFrac(emp.start), e=toFrac(emp.end);
+  const inShift = s<e ? (h>=s&&h<e) : (h>=s||h<e);
+  if(!inShift) return 'out';
+  const ls=toFrac(emp.lunch[0]),le=toFrac(emp.lunch[1]);
+  if(h>=ls&&h<le) return 'lunch';
+  const b1s=toFrac(emp.brk1[0]),b1e=toFrac(emp.brk1[1]);
+  if(h>=b1s&&h<b1e) return 'break';
+  const b2s=toFrac(emp.brk2[0]),b2e=toFrac(emp.brk2[1]);
+  if(h>=b2s&&h<b2e) return 'break';
+  return 'work';
+}
+
+function renderSidebar(filter='') {
+  const list = document.getElementById('emp-list');
+  const fil  = employees.filter(e=>e.name.toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById('emp-count').innerHTML = employees.length+'<span> members</span>';
+  if(!fil.length){list.innerHTML='<div class="empty-list">No employees found</div>';return;}
+  list.innerHTML = fil.map(e=>{
+    const c=getColor(e.id), init=e.name.slice(0,2).toUpperCase();
+    const ds=e.days.map(d=>d[0]).join('');
+    return `<div class="emp-item${selectedEmpId===e.id?' selected':''}" onclick="selectEmployee('${e.id}')">
+      <div class="emp-avatar" style="background:${c}22;color:${c}">${init}</div>
+      <div class="emp-info">
+        <div class="emp-name-sm">${e.name}</div>
+        <div class="emp-days-sm">${ds} · ${e.start}–${e.end}</div>
+      </div>
+      <button class="emp-del" onclick="event.stopPropagation();deleteEmployee('${e.id}')" title="Remove">×</button>
+    </div>`;
+  }).join('');
+}
+function filterEmployees(v){renderSidebar(v);}
+
+function renderDashboard() {
+  const filter=document.getElementById('view-filter').value;
+  let emps=employees;
+  if(filter==='working') emps=employees.filter(e=>e.days.includes(currentDay));
+  if(filter==='off')     emps=employees.filter(e=>!e.days.includes(currentDay));
+
+  const todayW=employees.filter(e=>e.days.includes(currentDay)).length;
+  document.getElementById('s-total').textContent   = employees.length;
+  document.getElementById('s-working').textContent = todayW;
+  document.getElementById('s-off').textContent     = employees.length-todayW;
+
+  let pk=0,pkH=0;
+  HOURS.forEach(h=>{const c=employees.filter(e=>getStatus(e,h)==='work').length;if(c>pk){pk=c;pkH=h;}});
+  document.getElementById('s-peak').textContent    = pk;
+  document.getElementById('s-peak-time').textContent = pk>0?`at ${formatHour(pkH)}`:'no data';
+
+  const tbl=document.getElementById('sched-table');
+  let html='<thead><tr><th class="time-h">Time</th>';
+  emps.forEach(e=>{
+    const c=getColor(e.id);
+    const d=e.name.length>9?e.name.slice(0,8)+'…':e.name;
+    html+=`<th title="${e.name}" style="font-size:10px"><span style="color:${c}">${d}</span></th>`;
+  });
+  html+='<th style="width:64px">Count</th></tr></thead><tbody>';
+
+  HOURS.forEach(h=>{
+    const sep=(h===6||h===12||h===18||h===0)?' class="block-sep"':'';
+    html+=`<tr${sep}><td class="time-cell ${hourClass(h)}">${formatHour(h)}</td>`;
+    let wc=0;
+    emps.forEach(e=>{
+      const st=getStatus(e,h);
+      if(st==='work')  {wc++;html+=`<td><div class="chip chip-work">Work</div></td>`;}
+      else if(st==='lunch'){html+=`<td><div class="chip chip-lunch">Lunch</div></td>`;}
+      else if(st==='break'){html+=`<td><div class="chip chip-break">Break</div></td>`;}
+      else if(st==='off')  {html+=`<td><div class="chip chip-off">Off</div></td>`;}
+      else                  {html+=`<td class="cell-empty"></td>`;}
+    });
+    const pct=employees.length>0?Math.round(wc/employees.length*100):0;
+    const col=wc===0?'var(--text3)':wc<3?'var(--amber)':'var(--blue)';
+    html+=`<td class="count-cell"><span style="color:${col};font-size:13px;font-weight:700">${wc}</span><br><span style="font-size:9px;color:var(--text3)">${pct}%</span></td></tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+}
+
+function selectEmployee(id) {
+  selectedEmpId=id;
+  renderSidebar(document.getElementById('search-input').value);
+  if(document.getElementById('view-employees').classList.contains('active')) renderEmpForm();
+}
+
+function renderEmpForm() {
+  const area=document.getElementById('emp-form-area');
+  if(!selectedEmpId){
+    area.innerHTML=`<div class="no-selection"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><div>Select an employee from the list<br>or add a new one</div></div>`;
+    return;
+  }
+  const e=employees.find(x=>x.id===selectedEmpId);
+  if(!e){area.innerHTML='';return;}
+  const c=getColor(e.id), init=e.name.slice(0,2).toUpperCase();
+
+  area.innerHTML=`<div class="emp-form-card">
+    <div class="emp-form-header">
+      <div class="avatar-big" style="background:${c}22;color:${c}">${init}</div>
+      <input class="name-input" value="${e.name}" onchange="updateEmp('name',this.value)" maxlength="30">
+      <button class="remove-btn" onclick="deleteEmployee('${e.id}')">Remove</button>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Working Days</div>
+      <div class="days-grid">${DAYS.map(d=>`<button class="day-toggle${e.days.includes(d)?' on':''}" onclick="toggleDay('${d}')">${d}</button>`).join('')}</div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Shift Hours</div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Start</div>
+          <input class="form-input" type="time" value="${e.start}" onchange="updateEmp('start',this.value)">
+        </div>
+        <div class="form-group">
+          <div class="form-label">End</div>
+          <input class="form-input" type="time" value="${e.end}" onchange="updateEmp('end',this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Lunch Break</div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Start</div>
+          <input class="form-input" type="time" value="${e.lunch[0]}" onchange="updateEmpArr('lunch',0,this.value)">
+        </div>
+        <div class="form-group">
+          <div class="form-label">End</div>
+          <input class="form-input" type="time" value="${e.lunch[1]}" onchange="updateEmpArr('lunch',1,this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Break 1</div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Start</div>
+          <input class="form-input" type="time" value="${e.brk1[0]}" onchange="updateEmpArr('brk1',0,this.value)">
+        </div>
+        <div class="form-group">
+          <div class="form-label">End</div>
+          <input class="form-input" type="time" value="${e.brk1[1]}" onchange="updateEmpArr('brk1',1,this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Break 2</div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Start</div>
+          <input class="form-input" type="time" value="${e.brk2[0]}" onchange="updateEmpArr('brk2',0,this.value)">
+        </div>
+        <div class="form-group">
+          <div class="form-label">End</div>
+          <input class="form-input" type="time" value="${e.brk2[1]}" onchange="updateEmpArr('brk2',1,this.value)">
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateEmp(f,v){const e=employees.find(x=>x.id===selectedEmpId);if(!e)return;e[f]=v;renderSidebar(document.getElementById('search-input').value);renderDashboard();}
+function updateEmpArr(f,i,v){const e=employees.find(x=>x.id===selectedEmpId);if(!e)return;e[f][i]=v;renderDashboard();}
+function toggleDay(d){const e=employees.find(x=>x.id===selectedEmpId);if(!e)return;const i=e.days.indexOf(d);if(i>=0)e.days.splice(i,1);else e.days.push(d);renderEmpForm();renderSidebar(document.getElementById('search-input').value);renderDashboard();}
+
+function openAddModal(){
+  if(employees.length>=60){showToast('Maximum 60 employees allowed');return;}
+  document.getElementById('new-emp-name').value='';
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('new-emp-name').focus(),100);
+}
+function closeModal(){document.getElementById('add-modal').classList.remove('open');}
+function confirmAddEmployee(){
+  const name=document.getElementById('new-emp-name').value.trim();
+  if(!name){showToast('Please enter a name');return;}
+  if(employees.length>=60){showToast('Maximum 60 employees allowed');return;}
+  const emp=defaultEmployee(name);
+  employees.push(emp);selectedEmpId=emp.id;
+  closeModal();renderSidebar('');renderDashboard();
+  if(document.getElementById('view-employees').classList.contains('active'))renderEmpForm();
+  showToast(`${name} has been added`);
+}
+function deleteEmployee(id){
+  const e=employees.find(x=>x.id===id);if(!e)return;
+  if(!confirm(`Remove ${e.name} from the schedule?`))return;
+  employees=employees.filter(x=>x.id!==id);
+  if(selectedEmpId===id)selectedEmpId=null;
+  renderSidebar(document.getElementById('search-input').value);renderDashboard();
+  if(document.getElementById('view-employees').classList.contains('active'))renderEmpForm();
+  showToast(`${e.name} has been removed`);
+}
+
+function switchView(v){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['dashboard','employees'][i]===v));
+  document.getElementById('view-dashboard').classList.toggle('active',v==='dashboard');
+  document.getElementById('view-employees').classList.toggle('active',v==='employees');
+  if(v==='employees')renderEmpForm();
+}
+function setDay(d,btn){
+  currentDay=d;
+  document.querySelectorAll('.day-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderDashboard();
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+document.getElementById('new-emp-name').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAddEmployee();if(e.key==='Escape')closeModal();});
+document.getElementById('add-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+function initDay(){
+  const map=[null,'Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today=map[new Date().getDay()]||'Mon';
+  currentDay=today;
+  document.querySelectorAll('.day-tab').forEach((b,i)=>b.classList.toggle('active',DAYS[i]===today));
+}
+
+loadFromURL();
+if(!employees.length)loadData();
+initDay();
+renderSidebar();
+renderDashboard();
+</script>
+</body>
+</html>
